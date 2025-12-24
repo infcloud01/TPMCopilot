@@ -1,6 +1,6 @@
 *Built with ❤️ by eXo Business Technologies.*
 
-This is a simple **Quick Start Guide** designed for a T(echnical)PM who just wants to get the bot running.
+This is a simple **Quick Start Guide** designed for a T(echnical)PM who just wants to get the agent running.
 
 # 🤖 TPMCopilot: The AI Co-pilot for TPMs
 
