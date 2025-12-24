@@ -37,7 +37,7 @@ try:
     for p in projects[:3]:
         print(f"   - {p['name']} (Key: {p['key']})")
 
-    # 5. TEST 3: Specific Project 'KAN'
+    # 5. TEST 3: Specific Project 'KAN' (Edit this portion to be your project KEY)
     print("\nTest 3: Checking specific project 'KAN'...")
     try:
         project_kan = jira.project("KAN")
@@ -61,4 +61,5 @@ except Exception as e:
     elif "404" in error_str:
         print("\nPossible Causes for 404 (Not Found):")
         print("1. The URL is wrong. It must match 'https://something.atlassian.net'.")
+
         print("2. The user does not have permission to access this Jira instance.")
