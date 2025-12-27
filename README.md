@@ -2,7 +2,7 @@
 
 This is a simple **Quick Start Guide** designed for a T(echnical)PM who just wants to get the agent running.
 
-# 🤖 TPMCopilot: The AI Co-pilot for TPMs
+# 🤖 TPM Copilot: The AI Co-pilot for TPMs
 
 TPMCopilot is an open-source AI agent to help Technical Program Managers (TPMs) automate administrative overhead. Instead of clicking through endless menus, filters, and dropdowns, you can simply chat with your Jira board in plain English.
 
