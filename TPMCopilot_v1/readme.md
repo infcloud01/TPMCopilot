@@ -4,7 +4,7 @@ This is a simple **Quick Start Guide** designed for a T(echnical)PM who just wan
 
 # 🤖 TPM Copilot: The AI Co-pilot for TPMs
 
-TPMCopilot is an open-source AI agent to help Technical Program Managers (TPMs) automate administrative overhead. Instead of clicking through endless menus, filters, and dropdowns, you can simply chat with your Jira board in plain English.
+TPM Copilot is an open-source AI agent to help Technical Program Managers (TPMs) automate administrative overhead. Instead of clicking through endless menus, filters, and dropdowns, you can simply chat with your Jira board in plain English.
 
 Powered by **LangChain**, **LangGraph**, and **OpenAI**.
 
@@ -116,4 +116,5 @@ Once the bot says **"🤖 TPM Copilot is ready!"**, try these:
 *   **"401 Unauthorized":**
 
     *   Your Jira Token or Email is incorrect. Ensure you are using the specific API Token from the Atlassian link above, not your password.
+
 
