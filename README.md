@@ -95,7 +95,7 @@ By default, the `tpmcopilot_v1.py` script is set up to work with a demo project 
 
 ## 🗣️ Example Commands
 
-Once the bot says **"🤖 TPMCopilot is ready!"**, try these:
+Once the bot says **"🤖 TPM Copilot is ready!"**, try these:
 
 *   **Search:** "List all tickets in the Backlog."
 *   **Search (Advanced):** "Show me tickets assigned to me that are blocked."
