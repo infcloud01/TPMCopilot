@@ -3,6 +3,8 @@
 ############# TPMCOPILOT.COM ##################
 import os
 import getpass
+import inspect
+import requests
 from datetime import datetime
 from typing import Annotated, TypedDict
 
@@ -250,8 +252,178 @@ def delete_ticket(ticket_id: str):
         print(f"DEBUG ERROR: {e}")
         return f"Failed to delete ticket {ticket_id}. Error: {str(e)}"
 
+@tool
+def link_tickets(source_ticket: str, target_ticket: str, link_type: str = "Blocks") -> str:
+    """
+    Links two tickets together.
+    
+    Args:
+        source_ticket: The ticket that is affecting the other (e.g., KAN-1).
+        target_ticket: The ticket being affected (e.g., KAN-2).
+        link_type: The type of link (e.g., "Blocks", "Relates", "Clones"). 
+                   Defaults to "Blocks".
+    """
+    try:
+        print(f"DEBUG: Linking {source_ticket} -> {link_type} -> {target_ticket}")
+
+        # Construct the dictionary payload expected by your specific library
+        link_payload = {
+            "type": {
+                "name": link_type
+            },
+            "inwardIssue": {
+                "key": source_ticket
+            },
+            "outwardIssue": {
+                "key": target_ticket
+            }
+        }
+
+        # Pass the dictionary as the single positional argument
+        jira.create_issue_link(link_payload)
+        
+        return f"Successfully linked {source_ticket} to {target_ticket} with type '{link_type}'."
+        
+    except Exception as e:
+        return f"Error linking tickets: {e}"
+
+@tool
+def unlink_tickets(source_ticket: str, target_ticket: str) -> str:
+    """
+    Removes the link between two Jira tickets.
+    """
+    try:
+        print(f"DEBUG: searching for link between {source_ticket} and {target_ticket}")
+        
+        # 1. GET THE ISSUE
+        # We know this returns a Dictionary based on your logs
+        source_issue = jira.issue(source_ticket)
+        
+        # 2. EXTRACT LINKS
+        # Using dictionary access as confirmed by your previous success
+        fields = source_issue.get('fields', {})
+        links = fields.get('issuelinks', [])
+
+        link_id_to_delete = None
+
+        # 3. FIND THE LINK ID
+        for link in links:
+            # Check Outward (Source -> Target)
+            if 'outwardIssue' in link and link['outwardIssue']['key'] == target_ticket:
+                link_id_to_delete = link['id']
+                print(f"DEBUG: Found outward link ID: {link_id_to_delete}")
+                break
+            
+            # Check Inward (Target -> Source)
+            if 'inwardIssue' in link and link['inwardIssue']['key'] == target_ticket:
+                link_id_to_delete = link['id']
+                print(f"DEBUG: Found inward link ID: {link_id_to_delete}")
+                break
+        
+        if not link_id_to_delete:
+            return f"No active link found between {source_ticket} and {target_ticket}."
+
+        # 4. DELETE USING API
+        # Since the library lacks the method, we hit the API directly.
+        print(f"DEBUG: Deleting Link ID {link_id_to_delete} via API")
+        
+        api_endpoint = f"{JIRA_URL}/rest/api/3/issueLink/{link_id_to_delete}"
+        
+        response = requests.delete(
+            api_endpoint,
+            auth=(JIRA_EMAIL, JIRA_API_TOKEN),
+            headers={"Content-Type": "application/json"}
+        )
+        
+        # 204 = No Content (Successful Deletion), 200 is also possible sometimes
+        if response.status_code in [200, 204]:
+            return f"Successfully unlinked {source_ticket} and {target_ticket}."
+        else:
+            return f"Failed to delete link via API. Status: {response.status_code}, Error: {response.text}"
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Error unlinking tickets: {e}"
+
+@tool
+def get_ticket_comments(ticket_id: str):
+    """
+    Retrieves the comments for a specific ticket.
+    Use this to understand the history or discussion behind a ticket.
+    """
+    try:
+        # Get comments (returns a list of dicts)
+        comments_data = jira.issue_get_comments(ticket_id)
+        comments = comments_data.get('comments', [])
+        
+        if not comments:
+            return f"No comments found for {ticket_id}."
+            
+        # Format them nicely
+        history = []
+        for c in comments[-5:]: # Limit to last 5 to save tokens
+            author = c['author']['displayName']
+            body = c['body']
+            # Truncate long comments
+            if len(body) > 200: 
+                body = body[:200] + "..."
+            history.append(f"- {author}: {body}")
+            
+        return "\n".join(history)
+    except Exception as e:
+        return f"Failed to get comments. Error: {str(e)}"
+
+@tool
+def add_to_epic(issue_keys: list, epic_key: str):
+    """
+    Adds a list of issues to an Epic.
+    
+    Args:
+        issue_keys: A list of strings, e.g. ["KAN-18", "KAN-19"]
+        epic_key: The key of the Epic ticket, e.g. "KAN-1"
+    """
+    success_count = 0
+    errors = []
+
+    # Handle case where LLM passes a single string instead of a list
+    if isinstance(issue_keys, str):
+        issue_keys = [issue_keys]
+
+    print(f"DEBUG: Adding {issue_keys} to Epic {epic_key} via 'parent' field...")
+
+    for issue in issue_keys:
+        try:
+            # In Jira Cloud v3, assigning to an Epic is done by setting the 'parent' field.
+            # This works for both Team-Managed and Company-Managed projects in most modern instances.
+            jira.update_issue_field(issue, {'parent': {'key': epic_key}})
+            success_count += 1
+            print(f"DEBUG: Successfully moved {issue} to {epic_key}")
+            
+        except Exception as e:
+            print(f"DEBUG ERROR on {issue}: {e}")
+            errors.append(f"{issue}: {str(e)}")
+
+    if errors:
+        return f"Partial success. Added {success_count} tickets. Failed on: {', '.join(errors)}"
+        
+    return f"Successfully added {len(issue_keys)} tickets to Epic {epic_key}."
+
+
 # List of tools provided to the LLM
-tools = [list_projects, list_jiras, get_ticket_details, update_ticket_status, update_due_date, create_ticket, assign_ticket, add_comment, delete_ticket]
+tools = [list_projects,
+         list_jiras,
+         get_ticket_details,
+         update_ticket_status,
+         update_due_date,
+         create_ticket,
+         assign_ticket,
+         add_comment,
+         delete_ticket,
+         link_tickets,
+         unlink_tickets,
+        get_ticket_comments,
+        add_to_epic]
 
 # ==========================================
 # 3. AGENT SETUP (LLM & GRAPH)
@@ -265,7 +437,7 @@ llm_with_tools = llm.bind_tools(tools)
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
 
-# System Prompt (Update the generic KAN key in this sytem prompt for your own project KEY)
+# System Prompt
 def get_system_message():
     date_str = datetime.now().strftime("%Y-%m-%d")
     prompt = f"""You are an expert Technical Program Manager (TPM) assistant for the 'Jirabot' project.
@@ -278,7 +450,7 @@ RULES:
 1. Unless asked otherwise, scope all JQL searches to 'project = KAN'.
 2. If the user gives a relative date (e.g., "next Friday"), calculate the YYYY-MM-DD format.
 3. Be concise and professional.
-4. SAFETY: Before calling 'delete_ticket', ensure the user explicitly provided the ticket ID. Do not guess.
+4. **SAFETY:** Before calling 'delete_ticket', ensure the user explicitly provided the ticket ID. Do not guess.
 """
     return SystemMessage(content=prompt)
 
@@ -306,7 +478,7 @@ react_graph = builder.compile()
 # ==========================================
 
 def chat():
-    print("\n🤖 JiraBot is ready! (Type 'quit' to exit)")
+    print("\n🤖 TPM Copilot is ready! (Type 'quit' to exit)")
     print("Example: 'List my high priority tickets' or 'Create a task to update docs'")
     
     # Simple memory for this session
