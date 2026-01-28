@@ -1,4 +1,4 @@
-*Built with ❤️ by [eXo Business Technologies] (https://exobtech.com)*
+*Built with ❤️ by [eXo Business Technologies](https://exobtech.com)*
 
 This is a simple **Quick Start Guide** designed for a T(echnical)PM who just wants to get the agent running.
 
